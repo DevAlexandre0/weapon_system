@@ -23,6 +23,7 @@ local SetEntityCompletelyDisableCollision = SetEntityCompletelyDisableCollision
 local SetFlashLightKeepOnWhileMoving = SetFlashLightKeepOnWhileMoving
 
 local utils = require 'utils'
+local state = require 'client.state'
 
 local isESX = GetResourceState("es_extended") ~= "missing"
 local isQB = GetResourceState("qb-core") ~= "missing"
@@ -37,8 +38,8 @@ local playerSex
 local flashlightState
 local isfirstSpawn = true
 
-equippedWeapon = {}
-playersToTrack = {}
+local equippedWeapon = state.equippedWeapon
+local playersToTrack = state.playersToTrack
 
 --- Delete all attached weapons and sync with server 
 local function deleteAllWeapons()
@@ -142,7 +143,7 @@ local function getAttachInfo(data)
     return MBT.PropInfo[data.Type]
 end
 
-function sendAnimations(jobName)
+local function sendAnimations(jobName)
     if MBT.CustomPropPosition[jobName] then
         utils.mbtDebugger("Custom prop position for job "..jobName.. " found!")
         overwriteValues(MBT.CustomPropPosition[jobName])

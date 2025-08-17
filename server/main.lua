@@ -1,11 +1,16 @@
 local utils = require 'utils'
+local state = require 'server.state'
+local scopesModule = require 'server.scopes'
 local isESX = GetResourceState("es_extended") ~= "missing"
 local isQB = GetResourceState("qb-core") ~= "missing"
 local isOX = GetResourceState("ox_core") ~= "missing"
 local FrameworkObj = {}
 local isReady = false
 local ox_inventory = exports["ox_inventory"]
-playersToTrack = {}
+local playersToTrack = state.playersToTrack
+local addPlayerToPlayerScope = scopesModule.addPlayerToPlayerScope
+local removePlayerFromScopes = scopesModule.removePlayerFromScopes
+local TriggerScopeEvent = scopesModule.TriggerScopeEvent
 
 if not lib.checkDependency('ox_inventory', '2.30.0') then warn("The script has not been tested with this versions of ox_inventory!") end
 
@@ -357,7 +362,7 @@ end)
 
 RegisterNetEvent("mbt_malisling:getPlayersInPlayerScope")
 AddEventHandler("mbt_malisling:getPlayersInPlayerScope", function(data)
-    if not players then scopes[tostring(source)] = {} end
+    if not state.scopes[tostring(source)] then state.scopes[tostring(source)] = {} end
     for i = 1, #data do
         addPlayerToPlayerScope(source, data[i])
     end

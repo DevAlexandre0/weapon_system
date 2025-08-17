@@ -1,6 +1,8 @@
 if not MBT.Throw["Enabled"] then return end
 
 local utils = require 'utils'
+local state = require 'client.state'
+local equippedWeapon = state.equippedWeapon
 
 local currentWeapon
 local throwAnim = MBT.Throw["Animation"]
