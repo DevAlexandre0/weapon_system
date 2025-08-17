@@ -14,7 +14,11 @@ RegisterNetEvent('mbt_malisling:createWeaponDrop', function(data)
     end
 
     local coords = GetEntityCoords(GetPlayerPed(source))
-    if #(coords - data.Coords) > 10.0 then return end -- drop must be near player
+    if type(data.Coords) ~= 'vector3' or #(coords - data.Coords) > 10.0 then
+        warn(('createWeaponDrop: invalid coords from %s'):format(source))
+        return
+    end
+    data.Coords = coords
 
     if ox_inventory:RemoveItem(source, item.name, item.count, nil, item.slot) then
         ox_inventory:CustomDrop(('ThrownDrop %s000000000'):format(os.time()),
