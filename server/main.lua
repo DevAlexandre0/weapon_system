@@ -371,26 +371,25 @@ AddEventHandler("mbt_malisling:checkInventory", function()
     TriggerClientEvent("mbt_malisling:checkWeaponProps", source, inv)
 end)
 
-RegisterNetEvent("mbt_malisling:syncSling")
-AddEventHandler("mbt_malisling:syncSling", function(data)
+RegisterNetEvent('mbt_malisling:syncSling', function(data)
+    if type(data.playerWeapons) ~= 'table' then return end
     local _source = source
-    if not playersToTrack[_source] then playersToTrack[_source] = {} end
-    for k, v in pairs(data.playerWeapons) do playersToTrack[_source][k] = v end
+    playersToTrack[_source] = playersToTrack[_source] or {}
 
-    Wait(400)
+    for wType, state in pairs(data.playerWeapons) do
+        if MBT.PropInfo[wType] then
+            playersToTrack[_source][wType] = state
+        end
+    end
 
     TriggerScopeEvent({
-        event = "mbt_malisling:syncSling",
+        event = 'mbt_malisling:syncSling',
         scopeOwner = _source,
         selfTrigger = true,
-        payload = {
-            type = "add",
-            playerSource = _source,
-            playerJob = getPlayerJob(_source), 
-            pedSex = getPlayerSex(_source), 
-            calledBy = "mbt_malisling:syncSling ~ 162",
-            playerWeapons = playersToTrack[_source]
-        }
+        payload = { type = 'add', playerSource = _source,
+                    playerJob = getPlayerJob(_source),
+                    pedSex = getPlayerSex(_source),
+                    playerWeapons = playersToTrack[_source] }
     })
 end)
 
