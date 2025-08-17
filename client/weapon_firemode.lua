@@ -17,14 +17,12 @@ AddEventHandler("playerSpawned", function ()
 end)
 
 Citizen.CreateThread(function()
-	while true do
-		Citizen.Wait(0)
+        while true do
+                local PlayerId = PlayerId()
+                local PlayerPed = PlayerPedId()
 
-		local PlayerId = PlayerId()
-		local PlayerPed = PlayerPedId()
-
-		-- Is the player armed with any gun
-		if IsPedArmed(PlayerPed, 4) and not IsPedInAnyVehicle(PlayerPed, true) then
+                -- Is the player armed with any gun
+                if IsPedArmed(PlayerPed, 4) and not IsPedInAnyVehicle(PlayerPed, true) then
 			local Active = false
 			local PedWeapon = GetSelectedPedWeapon(PlayerPed)
 
@@ -185,98 +183,81 @@ Citizen.CreateThread(function()
 				-- Enable shooting
 				FireMode.ShootingDisable = false
 			end
-		-- If ped is not armed
-		else
-			FireMode.LastWeapon = false
-			FireMode.LastWeaponActive = false
-			FireMode.ShootingDisable = false
-		end
+-- If ped is not armed
+                else
+                        FireMode.LastWeapon = false
+                        FireMode.LastWeaponActive = false
+                        FireMode.ShootingDisable = false
+                        Citizen.Wait(100)
+                end
 
-	end
+                Citizen.Wait(0)
+        end
 end)
 
--- Disable shooting loop
+-- Control handling loop
 Citizen.CreateThread(function()
-	while true do
-		Citizen.Wait(0)
-
-		while FireMode.ShootingDisable do
-			DisablePlayerFiring(PlayerId(), true)
-
-			-- Disable fire mode selector key
-			DisableControlAction(0, Config.SelectorKey, true)
-
-			-- Disable reload and pistol whip
-			DisableControlAction(0, 45, true)
-			DisableControlAction(0, 140, true)
-			DisableControlAction(0, 141, true)
-			DisableControlAction(0, 142, true)
-			DisableControlAction(0, 257, true)
-			DisableControlAction(0, 263, true)
-			DisableControlAction(0, 264, true)
-			Citizen.Wait(0)
-		end
-
-	end
-end)
-
--- Disable controls while using weapon
-Citizen.CreateThread(function()
-	while true do
-		Citizen.Wait(0)
-
-		if FireMode.LastWeapon and FireMode.LastWeaponActive ~= "reticle" then
-			-- Disable fire mode selector key
-			DisableControlAction(0, Config.SelectorKey, true)
-
-			-- Disable reload and pistol whip
-			DisableControlAction(0, 45, true)
-			DisableControlAction(0, 54, true)
-			DisableControlAction(0, 140, true)
-			DisableControlAction(0, 141, true)
-			DisableControlAction(0, 142, true)
-			DisableControlAction(0, 263, true)
-			DisableControlAction(0, 264, true)
-		end
-
-	end
+        while true do
+                if FireMode.ShootingDisable then
+                        DisablePlayerFiring(PlayerId(), true)
+                        DisableControlAction(0, Config.SelectorKey, true)
+                        DisableControlAction(0, 45, true)
+                        DisableControlAction(0, 140, true)
+                        DisableControlAction(0, 141, true)
+                        DisableControlAction(0, 142, true)
+                        DisableControlAction(0, 257, true)
+                        DisableControlAction(0, 263, true)
+                        DisableControlAction(0, 264, true)
+                        Citizen.Wait(0)
+                elseif FireMode.LastWeapon and FireMode.LastWeaponActive ~= "reticle" then
+                        DisableControlAction(0, Config.SelectorKey, true)
+                        DisableControlAction(0, 45, true)
+                        DisableControlAction(0, 54, true)
+                        DisableControlAction(0, 140, true)
+                        DisableControlAction(0, 141, true)
+                        DisableControlAction(0, 142, true)
+                        DisableControlAction(0, 263, true)
+                        DisableControlAction(0, 264, true)
+                        Citizen.Wait(0)
+                else
+                        Citizen.Wait(100)
+                end
+        end
 end)
 
 Citizen.CreateThread(function()
-	while true do
-		Citizen.Wait(0)
+        while true do
+                local PlayerPed = PlayerPedId()
 
-		local PlayerPed = PlayerPedId()
+                if HasEntityBeenDamagedByAnyPed(PlayerPed) then
+                        ClearEntityLastDamageEntity(PlayerPed)
 
-		if HasEntityBeenDamagedByAnyPed(PlayerPed) then
-			ClearEntityLastDamageEntity(PlayerPed)
+                        RequestAnimDict("move_m@injured")
+                        if not HasAnimDictLoaded("move_m@injured") then
+                                RequestAnimDict("move_m@injured")
+                                while not HasAnimDictLoaded("move_m@injured") do Citizen.Wait(0) end
+                        end
 
-			RequestAnimDict("move_m@injured")
-			if not HasAnimDictLoaded("move_m@injured") then
-				RequestAnimDict("move_m@injured")
-				while not HasAnimDictLoaded("move_m@injured") do Citizen.Wait(0) end
-			end
+                        -- Apply random effect to ped
+                        ApplyPedDamagePack(PlayerPed, Config.BloodEffects[math.random(#Config.BloodEffects)], 0, 0)
+                        -- Set limp
+                        SetPedMovementClipset(PlayerPed, "move_m@injured", 5.0)
+                        -- Add random amount of limping time
+                        FireMode.Limp = FireMode.Limp + math.random(100, 200)
+                end
 
-			-- Apply random effect to ped
-			ApplyPedDamagePack(PlayerPed, Config.BloodEffects[math.random(#Config.BloodEffects)], 0, 0)
-			-- Set limp
-			SetPedMovementClipset(PlayerPed, "move_m@injured", 5.0)
-			-- Add random amount of limping time
-			FireMode.Limp = FireMode.Limp + math.random(100, 200)
-		end
-
-		-- While there is still limp time remaining remove 1 tick from limp time
-		if FireMode.Limp > 0 then FireMode.Limp = FireMode.Limp - 1 end
-
-		-- When there is no limp time remaining
-		if FireMode.Limp == 0 then
-			-- Reset limp timer
-			FireMode.Limp = -1
-
-			-- Remove walking effect
-			ResetPedMovementClipset(PlayerPed, false)
-		end
-	end
+                -- While there is still limp time remaining remove 1 tick from limp time
+                if FireMode.Limp > 0 then
+                        FireMode.Limp = FireMode.Limp - 1
+                        if FireMode.Limp == 0 then
+                                FireMode.Limp = -1
+                                ResetPedMovementClipset(PlayerPed, false)
+                        end
+                        Citizen.Wait(0)
+                else
+                        Citizen.Wait(100)
+                end
+        end
 end)
 
 function NewNUIMessage (Type, Load)
