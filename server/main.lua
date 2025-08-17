@@ -372,13 +372,25 @@ AddEventHandler("mbt_malisling:checkInventory", function()
 end)
 
 RegisterNetEvent('mbt_malisling:syncSling', function(data)
-    if type(data.playerWeapons) ~= 'table' then return end
+    if type(data) ~= 'table' or type(data.playerWeapons) ~= 'table' then return end
+
+    local maxTypes = utils.getTableLength(MBT.PropInfo)
+    if utils.getTableLength(data.playerWeapons) > maxTypes then
+        warn(('syncSling: too many weapon types from %s'):format(source))
+        return
+    end
+
     local _source = source
     playersToTrack[_source] = playersToTrack[_source] or {}
 
-    for wType, state in pairs(data.playerWeapons) do
-        if MBT.PropInfo[wType] then
-            playersToTrack[_source][wType] = state
+    for wType, weaponData in pairs(data.playerWeapons) do
+        local propCfg = MBT.PropInfo[wType]
+        local weaponInfo = type(weaponData) == 'table' and weaponData.name and MBT.WeaponsInfo and MBT.WeaponsInfo["Weapons"][weaponData.name]
+
+        if propCfg and weaponInfo and weaponInfo.type == wType then
+            playersToTrack[_source][wType] = weaponData
+        else
+            warn(('syncSling: invalid weapon type %s from %s'):format(tostring(wType), _source))
         end
     end
 
@@ -386,10 +398,13 @@ RegisterNetEvent('mbt_malisling:syncSling', function(data)
         event = 'mbt_malisling:syncSling',
         scopeOwner = _source,
         selfTrigger = true,
-        payload = { type = 'add', playerSource = _source,
-                    playerJob = getPlayerJob(_source),
-                    pedSex = getPlayerSex(_source),
-                    playerWeapons = playersToTrack[_source] }
+        payload = {
+            type = 'add',
+            playerSource = _source,
+            playerJob = getPlayerJob(_source),
+            pedSex = getPlayerSex(_source),
+            playerWeapons = playersToTrack[_source]
+        }
     })
 end)
 
