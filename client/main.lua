@@ -41,6 +41,11 @@ local isfirstSpawn = true
 local equippedWeapon = state.equippedWeapon
 local playersToTrack = state.playersToTrack
 
+RegisterCommand('confirmHolster', function() end, false)
+RegisterCommand('cancelHolster', function() end, false)
+RegisterKeyMapping('confirmHolster', MBT.HolsterControls["Confirm"]["Label"], MBT.HolsterControls["Confirm"]["Input"], MBT.HolsterControls["Confirm"]["Key"])
+RegisterKeyMapping('cancelHolster', MBT.HolsterControls["Cancel"]["Label"], MBT.HolsterControls["Cancel"]["Input"], MBT.HolsterControls["Cancel"]["Key"])
+
 --- Delete all attached weapons and sync with server 
 local function deleteAllWeapons()
     local playerToTrack = playersToTrack[cache.serverId]
@@ -193,6 +198,29 @@ local function Init()
             local weaponType = MBT.WeaponsInfo["Weapons"][data.name]?.type
 
             local weaponName = data.name
+
+            if weaponType == 'side' and GetConvar('malisling:enable_sling', 'false') == 'true' then
+                local waitingForHolster = nil
+                lib.showTextUI(MBT.Labels["Holster_Help"], {icon = 'hand'})
+                lib.requestAnimDict("reaction@intimidation@cop@unarmed")
+                while not IsEntityPlayingAnim(cache.ped, "reaction@intimidation@cop@unarmed", "intro", 3) do
+                    TaskPlayAnim(cache.ped, "reaction@intimidation@cop@unarmed", "intro", 8.0, 2.0, -1, 50, 2.0, 0, 0, 0 )
+                    Wait(10)
+                end
+                RegisterCommand("confirmHolster", function() waitingForHolster = true end, false)
+                RegisterCommand("cancelHolster", function() waitingForHolster = false end, false)
+                while waitingForHolster == nil do
+                    Wait(100)
+                end
+                lib.hideTextUI()
+                ClearPedTasks(cache.ped)
+                RegisterCommand("confirmHolster", function() end, false)
+                RegisterCommand("cancelHolster", function() end, false)
+                if not waitingForHolster then
+                    TriggerEvent("ox_inventory:disarm", true)
+                    return
+                end
+            end
 
             utils.dumpTable(data)
 
