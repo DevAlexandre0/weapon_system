@@ -279,7 +279,7 @@ Citizen.CreateThread(function()
 	end
 end)
 
-function NewNUIMessage (Type, Load)
+local function NewNUIMessage (Type, Load)
 	if Config.SelectorImages then
 		SendNUIMessage({
 			PayloadType = Type,

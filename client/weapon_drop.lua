@@ -1,6 +1,8 @@
 local CurrentWeapon = {}
 
 local utils = require 'utils'
+local state = require 'client.state'
+local equippedWeapon = state.equippedWeapon
 
 AddEventHandler('ox_inventory:currentWeapon', function(currentWeapon) CurrentWeapon = currentWeapon end)
 if MBT.DropWeaponOnDeath then
@@ -20,7 +22,7 @@ if MBT.DropWeaponOnDeath then
     end)
 end
 
-function dropCurrentWeapon()
+local function dropCurrentWeapon()
     local playerPed = cache.ped
     local boneIndex = GetPedBoneIndex(playerPed, 57005)
     local bonePos = GetWorldPositionOfEntityBone(playerPed, boneIndex)
@@ -29,7 +31,7 @@ function dropCurrentWeapon()
     lib.requestModel(weaponModel)
     equippedWeapon.dropped = true
     local weaponObj = CreateObject(weaponModel, bonePos.x, bonePos.y, bonePos.z, true, true, true)
-    ActivatePhysics(weaponObj)  
+    ActivatePhysics(weaponObj)
     TriggerEvent("ox_inventory:disarm", true)
     while IsEntityInAir(weaponObj) do Wait(250); end
     Wait(700)

@@ -20,19 +20,30 @@ shared_scripts {
 }
 
 server_scripts {
-    'server/*.lua'
+    'server/main.lua',
+    'server/scopes.lua',
+    'server/version.lua',
+    'server/weapon_drop.lua',
+    'server/weapon_throw.lua'
 }
 
 client_scripts {
-    'client/*.lua'
+    'client/main.lua',
+    'client/weapon_drop.lua',
+    'client/weapon_firemode.lua',
+    'client/weapon_jamming.lua',
+    'client/weapon_recoil.lua',
+    'client/weapon_throw.lua'
 }
 
 files {
     'data/*.lua',
     'utils.lua',
+    'client/state.lua',
+    'server/state.lua',
     "nui.html",
     "images/*.png",
-    'metas/vehicle_weapons/*.meta', 
+    'metas/vehicle_weapons/*.meta',
     'metas/weaponcomponents/*.meta', 
     'metas/weapons/*.meta',
 }

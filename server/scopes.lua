@@ -1,11 +1,15 @@
 local functQueue, oldScop = {}, {}
-scopes = {}
 
 local utils = require 'utils'
+local state = require 'server.state'
+local scopes = state.scopes
+local playersToTrack = state.playersToTrack
+
+local M = {}
  
 ---@param player number | string
 ---@param playerToAdd number | string
-function addPlayerToPlayerScope(player, playerToAdd)
+function M.addPlayerToPlayerScope(player, playerToAdd)
     local player = tostring(player)
     local playerSource = tonumber(player)
     local playerToAdd = tonumber(playerToAdd)
@@ -50,7 +54,7 @@ local function removePlayerFromPlayerScope(player, playerToRemove)
     end
 end
 
-function removePlayerFromScopes(s)
+function M.removePlayerFromScopes(s)
     for k,v in pairs(scopes) do
         for i=1, #v do
             if v[i] == s then
@@ -83,7 +87,7 @@ end
 ---Trigger event to all players inside scope
 ---@param data table
 ---@return promise
-function TriggerScopeEvent(data)
+function M.TriggerScopeEvent(data)
     local event = data.event
     local scopeOwner = tostring(data.scopeOwner)
     if not scopeOwner then return end
@@ -138,7 +142,7 @@ AddEventHandler("playerEnteredScope", function(data)
         scopes[player] = {} 
     end
 
-    addPlayerToPlayerScope(player, playerEntering)
+    M.addPlayerToPlayerScope(player, playerEntering)
 end)
 
 AddEventHandler("playerLeftScope", function(data)
@@ -199,3 +203,5 @@ Citizen.CreateThread(function()
         end
     end
 end)
+
+return M
