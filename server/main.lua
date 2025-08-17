@@ -247,27 +247,54 @@ end
 
 RegisterNetEvent("mbt_malisling:sendAnim")
 AddEventHandler("mbt_malisling:sendAnim", function (data)
-    local wInfo = data.WeaponData["Weapons"]
-	local Items = require 'modules.items.shared'
-	
-    for k, v in pairs(wInfo) do
-        local itemName = k
-        local itemType = wInfo[itemName]["type"]
-		
-		if not itemType then
-			local s = "The weapon "..itemName.." has not been configured in data/weapons.lua of mbt_malisling, therefore it will not be attached to player!"
-			warn(s)
-		else
-			if data.HolsterData[itemType]["HolsterAnim"] then
-				local animInfo = data.HolsterData[itemType]["HolsterAnim"]
-				local animTable = {animInfo.dict, animInfo.animIn, animInfo.sleep, animInfo.dict, animInfo.animOut, animInfo.sleepOut}
-				
-				if Items[itemName] then
-					Items[itemName]["type"] = itemType
-					Items[itemName]["anim"] = animTable
-				end
-			end
-		end
+    if type(data) ~= 'table' then
+        warn('sendAnim: expected table data')
+        return
+    end
+
+    local weaponData = data.WeaponData
+    local holsterData = data.HolsterData
+
+    if type(weaponData) ~= 'table' or type(weaponData.Weapons) ~= 'table' or type(holsterData) ~= 'table' then
+        warn('sendAnim: malformed WeaponData or HolsterData')
+        return
+    end
+
+    local wInfo = weaponData["Weapons"]
+    local Items = require 'modules.items.shared'
+
+    for itemName, weapon in pairs(wInfo) do
+        if type(weapon) ~= 'table' then
+            warn(('sendAnim: invalid weapon entry for %s'):format(tostring(itemName)))
+            return
+        end
+
+        local itemType = weapon["type"]
+        if type(itemType) ~= 'string' then
+            warn(('sendAnim: weapon %s missing type'):format(tostring(itemName)))
+            return
+        end
+
+        local holsterInfo = holsterData[itemType]
+        if type(holsterInfo) ~= 'table' then
+            warn(('sendAnim: holster data for type %s missing or invalid'):format(itemType))
+            return
+        end
+
+        local animInfo = holsterInfo["HolsterAnim"]
+        if animInfo ~= nil then
+            if type(animInfo) ~= 'table' or not animInfo.dict or not animInfo.animIn or not animInfo.sleep or not animInfo.animOut or not animInfo.sleepOut then
+                warn(('sendAnim: invalid HolsterAnim for weapon %s'):format(itemName))
+                return
+            end
+
+            local animTable = {animInfo.dict, animInfo.animIn, animInfo.sleep, animInfo.dict, animInfo.animOut, animInfo.sleepOut}
+
+            if Items[itemName] then
+                Items[itemName]["type"] = itemType
+                Items[itemName]["anim"] = animTable
+            end
+        end
     end
 end)
 
