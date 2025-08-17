@@ -261,7 +261,7 @@ AddEventHandler("mbt_malisling:sendAnim", function (data)
     end
 
     local wInfo = weaponData["Weapons"]
-    local Items = require 'modules.items.shared'
+    local validated = {}
 
     for itemName, weapon in pairs(wInfo) do
         if type(weapon) ~= 'table' then
@@ -289,11 +289,15 @@ AddEventHandler("mbt_malisling:sendAnim", function (data)
             end
 
             local animTable = {animInfo.dict, animInfo.animIn, animInfo.sleep, animInfo.dict, animInfo.animOut, animInfo.sleepOut}
+            validated[itemName] = { type = itemType, anim = animTable }
+        end
+    end
 
-            if Items[itemName] then
-                Items[itemName]["type"] = itemType
-                Items[itemName]["anim"] = animTable
-            end
+    local Items = require 'modules.items.shared'
+    for itemName, info in pairs(validated) do
+        if Items[itemName] then
+            Items[itemName]["type"] = info.type
+            Items[itemName]["anim"] = info.anim
         end
     end
 end)
