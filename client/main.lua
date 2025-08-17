@@ -151,7 +151,7 @@ local function sendAnimations(jobName)
         propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
     end
 
-    TriggerEvent("mbt_malisling:sendAnim", {
+    TriggerServerEvent("mbt_malisling:sendAnim", {
         WeaponData = MBT.WeaponsInfo,
         HolsterData = propInfoTable
     })
@@ -457,7 +457,7 @@ elseif isOX then
             end
         end
 
-        TriggerEvent("mbt_malisling:sendAnim", {
+        TriggerServerEvent("mbt_malisling:sendAnim", {
             WeaponData = MBT.WeaponsInfo,
             HolsterData = propInfoTable
         })
