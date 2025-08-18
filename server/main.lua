@@ -1,8 +1,7 @@
 local utils = require 'utils'
 local state = require 'server.state'
 local scopesModule = require 'server.scopes'
-local isESX = GetResourceState("es_extended") ~= "missing"
-local FrameworkObj = {}
+local ESX
 local isReady = false
 local ox_inventory = exports["ox_inventory"]
 local playersToTrack = state.playersToTrack
@@ -82,38 +81,34 @@ if GetConvarInt('inventory:weaponanims', 1) == 0 then
     "You have enabled the sling feature, but you have disabled the weapons animation convar in ox_inventory. This will cause issues with animations and the sling feature. Please set inventory:weaponanims to 1")
 end
 
-if isESX then
-    FrameworkObj = exports["es_extended"]:getSharedObject()
+RegisterNetEvent('esx:playerLoaded')
+AddEventHandler('esx:playerLoaded', function(playerId)
+    playersToTrack[playerId] = {}
+    weaponDurability[playerId] = {}
+    lastJam[playerId] = 0
+end)
 
-    RegisterNetEvent('esx:playerLoaded')
-    AddEventHandler('esx:playerLoaded', function(playerId)
-        playersToTrack[playerId] = {}
-        weaponDurability[playerId] = {}
-        lastJam[playerId] = 0
-    end)
+getPlayerJob = function (s)
+    s = tonumber(s)
+    local xPlayer = ESX.GetPlayerFromId(s)
+    if not xPlayer then return "" end
+    return xPlayer.job.name
+end
 
-    getPlayerJob = function (s)
-        s = tonumber(s)
-        local xPlayer = FrameworkObj.GetPlayerFromId(s)
-        if not xPlayer then return "" end
-        return xPlayer.job.name
-    end
-
-    getPlayerSex = function (s)
-        s = tonumber(s)
-        local xPlayer = FrameworkObj.GetPlayerFromId(s)
-        if not xPlayer then return "male" end
-        return xPlayer.get("sex") == "m" and "male" or "female"
-    end
-
-else
-    getPlayerJob = function () return "" end
-    getPlayerSex = function () return "male" end
+getPlayerSex = function (s)
+    s = tonumber(s)
+    local xPlayer = ESX.GetPlayerFromId(s)
+    if not xPlayer then return "male" end
+    return xPlayer.get("sex") == "m" and "male" or "female"
 end
 
 
 AddEventHandler('onServerResourceStart', function(resource)
     if resource ~= GetCurrentResourceName() then return end
+    if GetResourceState('es_extended') == 'missing' then
+        error('es_extended is required for mbt_malisling')
+    end
+    ESX = exports['es_extended']:getSharedObject()
     loadWeaponsInfo()
 end)
 
