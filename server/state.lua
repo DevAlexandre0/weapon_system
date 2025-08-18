@@ -1,6 +1,8 @@
 local state = {
     playersToTrack = {},
-    scopes = {}
+    scopes = {},
+    weaponDurability = {},
+    lastJam = {}
 }
 
 return state

@@ -1,7 +1,6 @@
 if not MBT.Jamming["Enabled"] then return end
 
 local utils = require 'utils'
-local jammed = GetGameTimer()
 local currentWeapon
 
 local jamAnim = MBT.Jamming["Animation"]
@@ -21,8 +20,8 @@ local function skillCheck()
         Wait(success and 100 or 800)
     until success
 
-    LocalPlayer.state:set('JammedState', false, false)
-    MBT.Notification(MBT.Labels["has_unjammed"])
+    isJammed = false
+    TriggerServerEvent('mbt_malisling:unjamWeapon')
 end
 
 local function disableFiring()
@@ -46,12 +45,12 @@ local function jammedAnim()
 end
 
 AddStateBagChangeHandler('JammedState', nil, function(bagName, key, value)
-    if value == nil or not type(value) == "boolean" then return end
+    if value == nil or type(value) ~= "boolean" then return end
     isJammed = value
     utils.mbtDebugger("isJammed has been set to ", isJammed)
-    MBT.Notification(MBT.Labels["has_jammed"])
 
     if isJammed then
+        MBT.Notification(MBT.Labels["has_jammed"])
         Citizen.CreateThread(function()
             disableFiring()
         end)
@@ -61,15 +60,18 @@ AddStateBagChangeHandler('JammedState', nil, function(bagName, key, value)
         Citizen.CreateThread(function()
             skillCheck()
         end)
+    else
+        MBT.Notification(MBT.Labels["has_unjammed"])
     end
 end)
 
-AddEventHandler("CEventGunShotWhizzedBy", function(entities, eventEntity, args)
+AddEventHandler("CEventGunShot", function(entities, eventEntity, args)
     if currentWeapon and not isJammed then
-        utils.mbtDebugger("currentWeapon.metadata.durability ", currentWeapon.metadata.durability)
-        if utils.getJammingChance(currentWeapon.metadata.durability) and (GetGameTimer() - jammed) > (MBT.Jamming["Cooldown"] * 1000) then
-                jammed = GetGameTimer()
-                LocalPlayer.state:set('JammedState', true, false)
-        end
+        TriggerServerEvent('mbt_malisling:shotFired', currentWeapon.slot)
     end
+end)
+
+RegisterNetEvent('mbt_malisling:useRepairKit', function(data)
+    if type(data) ~= 'table' then return end
+    TriggerServerEvent('mbt_malisling:repairWeapon', data)
 end)

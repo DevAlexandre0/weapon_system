@@ -6,6 +6,8 @@ local FrameworkObj = {}
 local isReady = false
 local ox_inventory = exports["ox_inventory"]
 local playersToTrack = state.playersToTrack
+local weaponDurability = state.weaponDurability
+local lastJam = state.lastJam
 local addPlayerToPlayerScope = scopesModule.addPlayerToPlayerScope
 local removePlayerFromScopes = scopesModule.removePlayerFromScopes
 local TriggerScopeEvent = scopesModule.TriggerScopeEvent
@@ -68,6 +70,8 @@ local function dropPlayer(s)
         { playerSource = s, weaponType = "all", calledBy = "dropPlayer" })
     TriggerClientEvent("mbt_malisling:syncPlayerRemoval", -1, { playerSource = s })
     playersToTrack[s] = nil
+    weaponDurability[s] = nil
+    lastJam[s] = nil
     removePlayerFromScopes(s)
 end
 
@@ -84,6 +88,8 @@ if isESX then
     RegisterNetEvent('esx:playerLoaded')
     AddEventHandler('esx:playerLoaded', function(playerId)
         playersToTrack[playerId] = {}
+        weaponDurability[playerId] = {}
+        lastJam[playerId] = 0
     end)
 
     getPlayerJob = function (s)
@@ -99,6 +105,7 @@ if isESX then
         if not xPlayer then return "male" end
         return xPlayer.get("sex") == "m" and "male" or "female"
     end
+
 else
     getPlayerJob = function () return "" end
     getPlayerSex = function () return "male" end
@@ -184,4 +191,72 @@ AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
             weaponType = weaponType
         }
     })
+end)
+
+RegisterNetEvent('mbt_malisling:shotFired', function(slot)
+    local src = source
+    if not slot then return end
+
+    local weaponData = ox_inventory:GetSlot(src, slot)
+    if not weaponData or not weaponData.metadata then return end
+
+    local durability = weaponData.metadata.durability or 100
+    durability = math.max(durability - 1, 0)
+    weaponData.metadata.durability = durability
+    ox_inventory:SetMetadata(src, slot, weaponData.metadata)
+
+    weaponDurability[src] = weaponDurability[src] or {}
+    local serial = weaponData.metadata.serial or slot
+    weaponDurability[src][serial] = durability
+
+    local now = GetGameTimer()
+    local cooldown = (MBT.Jamming["Cooldown"] or 0) * 1000
+    lastJam[src] = lastJam[src] or 0
+    if now - lastJam[src] >= cooldown and utils.getJammingChance(durability) then
+        lastJam[src] = now
+        local player = Player(src)
+        if player then
+            player.state:set('JammedState', true, true)
+        end
+    end
+end)
+
+RegisterNetEvent('mbt_malisling:unjamWeapon', function()
+    local src = source
+    local player = Player(src)
+    if player then
+        player.state:set('JammedState', false, true)
+    end
+end)
+
+RegisterNetEvent('mbt_malisling:repairWeapon', function(data)
+    local src = source
+    if type(data) ~= 'table' then return end
+
+    local slot = data.slot
+    local item = data.item
+    if not slot or not item then return end
+
+    local weaponData = ox_inventory:GetSlot(src, slot)
+    if not weaponData or not weaponData.metadata then return end
+
+    local repairItem = ox_inventory:GetItem(src, item, nil, true)
+    if not repairItem or repairItem.count < 1 then return end
+
+    local durability = weaponData.metadata.durability or 100
+    if durability >= 100 then return end
+
+    weaponData.metadata.durability = 100
+    ox_inventory:SetMetadata(src, slot, weaponData.metadata)
+
+    weaponDurability[src] = weaponDurability[src] or {}
+    local serial = weaponData.metadata.serial or slot
+    weaponDurability[src][serial] = 100
+
+    local player = Player(src)
+    if player then
+        player.state:set('JammedState', false, true)
+    end
+
+    ox_inventory:RemoveItem(src, item, 1)
 end)
