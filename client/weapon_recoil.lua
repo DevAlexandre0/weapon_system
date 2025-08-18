@@ -93,47 +93,7 @@ local function shouldShowReticle(ped, weaponHash, weaponName)
     return false
 end
 
--- ===== HUD / Reticle =====
-CreateThread(function()
-    while true do
-        Wait(0)
-
-        -- ซ่อน HUD อื่น ๆ
-        for _, comp in ipairs(componentsToHide) do
-            HideHudComponentThisFrame(comp)
-        end
-
-        -- Ammo HUD
-        if hideAmmo then
-            HideHudComponentThisFrame(20)
-            HideHudComponentThisFrame(2)
-            DisplayAmmoThisFrame(false)
-        end
-
-        -- --- Reticle priority: ForceHide > ForceShow > Auto ---
-        local ped = PlayerPedId()
-        if Config.Crosshair and Config.Crosshair.ForceHide then
-            HideHudComponentThisFrame(14)
-        elseif Config.Crosshair and Config.Crosshair.ForceShow then
-            ShowHudComponentThisFrame(14)
-        elseif CRS_manage then
-            if IsPedArmed(ped, 6) then
-                local whash = GetSelectedPedWeapon(ped)
-                local wname = (currentWeapon and currentWeapon.name) or "Default"
-                if shouldShowReticle(ped, whash, wname) then
-                    ShowHudComponentThisFrame(14)
-                else
-                    HideHudComponentThisFrame(14)
-                end
-            else
-                HideHudComponentThisFrame(14)
-            end
-        end
-    end
-end)
-
-
--- ===== Recoil (vertical + horizontal + ramp; config-driven) =====
+-- ===== Recoil helpers =====
 local lastShotAt, rampFactor = 0, 1.0
 local function getRecoilNumbers(ped, weaponName, weaponHash)
     -- base tables (with sensible defaults ifไม่ตั้ง)
@@ -173,47 +133,86 @@ local function getRecoilNumbers(ped, weaponName, weaponHash)
     return baseV * m * rampFactor, baseH * m * math.sqrt(rampFactor)
 end
 
--- single recoil loop
+-- ===== HUD / Reticle / Recoil loop =====
 CreateThread(function()
+    local forcedFPS = false
     while true do
-        Wait(0)
         local ped = PlayerPedId()
 
-        -- block melee while aiming (QoL)
-        if IsPedArmed(ped, 6) then
+        if not IsPedArmed(ped, 6) then
+            forcedFPS = false
+            Wait(200)
+        else
+            Wait(0)
+
+            -- ซ่อน HUD อื่น ๆ
+            for _, comp in ipairs(componentsToHide) do
+                HideHudComponentThisFrame(comp)
+            end
+
+            -- Ammo HUD
+            if hideAmmo then
+                HideHudComponentThisFrame(20)
+                HideHudComponentThisFrame(2)
+                DisplayAmmoThisFrame(false)
+            end
+
+            -- --- Reticle priority: ForceHide > ForceShow > Auto ---
+            if Config.Crosshair and Config.Crosshair.ForceHide then
+                HideHudComponentThisFrame(14)
+            elseif Config.Crosshair and Config.Crosshair.ForceShow then
+                ShowHudComponentThisFrame(14)
+            elseif CRS_manage then
+                local whash = GetSelectedPedWeapon(ped)
+                local wname = (currentWeapon and currentWeapon.name) or "Default"
+                if shouldShowReticle(ped, whash, wname) then
+                    ShowHudComponentThisFrame(14)
+                else
+                    HideHudComponentThisFrame(14)
+                end
+            end
+
+            -- block melee while aiming (QoL)
             DisableControlAction(1, 140, true)
             DisableControlAction(1, 141, true)
             DisableControlAction(1, 142, true)
-        end
 
-        if IsPedShooting(ped) then
-            local weaponHash = GetSelectedPedWeapon(ped)
-            local weaponName = (currentWeapon and currentWeapon.name) or "Default"
-
-            -- First-person handling
-            local fps = (GetFollowPedCamViewMode() == 4)
-            local fpApply = RC.FirstPerson and RC.FirstPerson.Apply == true
-            if fps and not fpApply then
-                goto continue
+            -- On free aim, force FPS once, allow manual camera toggle afterwards
+            if IsPlayerFreeAiming(PlayerId()) then
+                if not forcedFPS then
+                    SetFollowPedCamViewMode(4)
+                    forcedFPS = true
+                end
+            else
+                forcedFPS = false
             end
 
-            local vertical, horizontal = getRecoilNumbers(ped, weaponName, weaponHash)
+            if IsPedShooting(ped) then
+                local weaponHash = GetSelectedPedWeapon(ped)
+                local weaponName = (currentWeapon and currentWeapon.name) or "Default"
 
-            -- vertical: raise smoothly
-            local applied = 0.0
-            local maxStep = (RC.VerticalStepMaxPerFrame or 0.25)
-            while applied < vertical do
-                Wait(0)
-                local p = GetGameplayCamRelativePitch()
-                local step = math.min(maxStep, vertical - applied)
-                SetGameplayCamRelativePitch(p + step, 0.20)
-                applied = applied + step
+                -- First-person handling
+                local fps = (GetFollowPedCamViewMode() == 4)
+                local fpApply = RC.FirstPerson and RC.FirstPerson.Apply == true
+                if not (fps and not fpApply) then
+                    local vertical, horizontal = getRecoilNumbers(ped, weaponName, weaponHash)
+
+                    -- vertical: raise smoothly
+                    local applied = 0.0
+                    local maxStep = (RC.VerticalStepMaxPerFrame or 0.25)
+                    while applied < vertical do
+                        Wait(0)
+                        local p = GetGameplayCamRelativePitch()
+                        local step = math.min(maxStep, vertical - applied)
+                        SetGameplayCamRelativePitch(p + step, 0.20)
+                        applied = applied + step
+                    end
+
+                    -- horizontal jitter: small random sway
+                    local jitter = (math.random() * 2.0 - 1.0) * horizontal
+                    SetGameplayCamRelativeHeading(GetGameplayCamRelativeHeading() + jitter)
+                end
             end
-
-            -- horizontal jitter: small random sway
-            local jitter = (math.random() * 2.0 - 1.0) * horizontal
-            SetGameplayCamRelativeHeading(GetGameplayCamRelativeHeading() + jitter)
         end
-        ::continue::
     end
 end)
