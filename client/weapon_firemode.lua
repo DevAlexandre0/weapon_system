@@ -22,6 +22,22 @@ AddEventHandler("playerSpawned", function ()
         FireMode.LimpLoop = false
 end)
 
+local RunFireModeLoop
+
+local function EnableFireMode()
+        if FireMode.Active then return end
+        FireMode.Active = true
+        RunFireModeLoop()
+end
+
+local function DisableFireMode()
+        if not FireMode.Active then return end
+        FireMode.Active = false
+        FireMode.LastWeapon = false
+        FireMode.LastWeaponActive = false
+        FireMode.ShootingDisable = false
+end
+
 local function StartControlLoop()
         if FireMode.ControlLoop then return end
         FireMode.ControlLoop = true
@@ -77,7 +93,7 @@ local function StartLimpLoop()
         end)
 end
 
-local function RunFireModeLoop()
+RunFireModeLoop = function()
         Citizen.CreateThread(function()
                 while FireMode.Active do
                         local PlayerId = PlayerId()
@@ -250,48 +266,38 @@ local function RunFireModeLoop()
         end)
 end
 
-Citizen.CreateThread(function()
-        while true do
-                local PlayerPed = PlayerPedId()
-                local armed = IsPedArmed(PlayerPed, 4) and not IsPedInAnyVehicle(PlayerPed, true)
-                if armed then
-                        if not FireMode.Active then
-                                FireMode.Active = true
-                                RunFireModeLoop()
-                        end
-                else
-                        if FireMode.Active then
-                                FireMode.Active = false
-                                FireMode.LastWeapon = false
-                                FireMode.LastWeaponActive = false
-                                FireMode.ShootingDisable = false
-                        end
-                end
-                Citizen.Wait(500)
+AddEventHandler('ox_inventory:currentWeapon', function(data)
+        local PlayerPed = PlayerPedId()
+        if data and not IsPedInAnyVehicle(PlayerPed, true) then
+                EnableFireMode()
+        else
+                DisableFireMode()
         end
 end)
 
-Citizen.CreateThread(function()
-        while true do
-                local PlayerPed = PlayerPedId()
-                if HasEntityBeenDamagedByAnyPed(PlayerPed) then
+AddEventHandler('gameEventTriggered', function(name, args)
+        local PlayerPed = PlayerPedId()
+        if name == 'CEventNetworkEntityDamage' then
+                local victim = args[1]
+                if victim == PlayerPed then
                         ClearEntityLastDamageEntity(PlayerPed)
 
-                        RequestAnimDict("move_m@injured")
-                        if not HasAnimDictLoaded("move_m@injured") then
-                                RequestAnimDict("move_m@injured")
-                                while not HasAnimDictLoaded("move_m@injured") do Citizen.Wait(0) end
-                        end
+                        RequestAnimDict('move_m@injured')
+                        while not HasAnimDictLoaded('move_m@injured') do Wait(0) end
 
-                        -- Apply random effect to ped
                         ApplyPedDamagePack(PlayerPed, Config.BloodEffects[math.random(#Config.BloodEffects)], 0, 0)
-                        -- Set limp
-                        SetPedMovementClipset(PlayerPed, "move_m@injured", 5.0)
-                        -- Add random amount of limping time
+                        SetPedMovementClipset(PlayerPed, 'move_m@injured', 5.0)
                         FireMode.Limp = math.max(FireMode.Limp, 0) + math.random(100, 200)
                         StartLimpLoop()
                 end
-                Citizen.Wait(500)
+        elseif name == 'CEventNetworkPlayerEnteredVehicle' then
+                if args[1] == PlayerPed then
+                        DisableFireMode()
+                end
+        elseif name == 'CEventNetworkPlayerExitVehicle' then
+                if args[1] == PlayerPed and GetSelectedPedWeapon(PlayerPed) ~= `WEAPON_UNARMED` then
+                        EnableFireMode()
+                end
         end
 end)
 

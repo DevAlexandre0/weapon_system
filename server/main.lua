@@ -2,8 +2,6 @@ local utils = require 'utils'
 local state = require 'server.state'
 local scopesModule = require 'server.scopes'
 local isESX = GetResourceState("es_extended") ~= "missing"
-local isQB = GetResourceState("qb-core") ~= "missing"
-local isOX = GetResourceState("ox_core") ~= "missing"
 local FrameworkObj = {}
 local isReady = false
 local ox_inventory = exports["ox_inventory"]
@@ -100,7 +98,7 @@ if isESX then
         if not xPlayer then return "" end
         return xPlayer.job.name
     end
-    
+
     getPlayerSex = function (s)
         s = tonumber(s)
         local xPlayer = FrameworkObj.GetPlayerFromId(s)
@@ -108,39 +106,9 @@ if isESX then
         return xPlayer.get("sex") == "m" and "male" or "female"
     end
 
-elseif isQB then
-    FrameworkObj = exports["qb-core"]:GetCoreObject()
-    AddEventHandler('QBCore:Server:PlayerLoaded', function(qbPlayer)
-        local source = qbPlayer.PlayerData.source
-        playersToTrack[source] = {}
-        weaponDurability[source] = {}
-        lastJam[source] = 0
-    end)
-
-    getPlayerJob = function (s)
-        s = tonumber(s)
-        local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
-        if not xPlayer then return "male" end
-        return xPlayer.PlayerData.job.name
-    end
-    
-    getPlayerSex = function (s)
-        s = tonumber(s)
-        local xPlayer  = FrameworkObj.Functions.GetPlayer(s)
-        if not xPlayer then return "male" end
-        return xPlayer.PlayerData.charinfo.gender == 0 and "male" or "female"
-    end
-elseif isOX then
-    local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
-    local import = LoadResourceFile('ox_core', file)
-    local chunk = assert(load(import, ('@@ox_core/%s'):format(file)))
-    chunk()
-
-    AddEventHandler('ox:playerLoaded', function(source, userid, charid)
-        playersToTrack[source] = {}
-        weaponDurability[source] = {}
-        lastJam[source] = 0
-    end)
+else
+    getPlayerJob = function () return "" end
+    getPlayerSex = function () return "male" end
 end
 
 
