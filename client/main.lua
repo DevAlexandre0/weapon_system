@@ -26,12 +26,11 @@ local utils = require 'utils'
 local state = require 'client.state'
 
 local isESX = GetResourceState("es_extended") ~= "missing"
-local isQB = GetResourceState("qb-core") ~= "missing"
-local isOX = GetResourceState("ox_core") ~= "missing"
 local isMultichar = GetResourceState("esx_multicharacter") ~= "missing"
 
 local ox_inventory = exports["ox_inventory"]
 local FrameworkObj, weaponNames, weaponObjectiveSpawned = {}, {}, {}
+local PlayerData = {}
 local isReady = false
 local propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
 local playerSex
@@ -368,7 +367,7 @@ local function Init()
     isReady = true
 end
 
-if isESX then 
+if isESX then
 	FrameworkObj = exports["es_extended"]:getSharedObject()
 
     AddEventHandler('esx:loadingScreenOff', function()
@@ -431,73 +430,6 @@ if isESX then
         end
     end)
  
-elseif isQB then
-	FrameworkObj = exports["qb-core"]:GetCoreObject()
-
-    PlayerData = FrameworkObj.Functions.GetPlayerData()
-
-    RegisterNetEvent("QBCore:Client:OnPlayerLoaded", function()
-        Init()
-    end)
-
-    RegisterNetEvent("QBCore:Client:OnJobUpdate", function(JobInfo)
-        PlayerData.job = JobInfo
-    end)
-
-elseif isOX then
-	local file = ('imports/%s.lua'):format(IsDuplicityVersion() and 'server' or 'client')
-    local import = LoadResourceFile('ox_core', file)
-    local chunk = assert(load(import, ('@@ox_core/%s'):format(file)))
-    chunk()
- 
-    FrameworkObj = Ox
-
-    AddEventHandler('ox:playerLoaded', function(data)
-        utils.mbtDebugger("ox:playerLoaded ~ FIRED")
-        PlayerData = data
-        
-        Init()
-    end)
-    PlayerData = FrameworkObj.GetPlayerData()
-
- 
-    sendAnimations = function ()
-        local playerGroups = {}
-        
-        for k in pairs(PlayerData.groups) do
-            playerGroups[#playerGroups+1] = k
-        end
-
-        if next(playerGroups) == nil then
-            utils.mbtDebugger("No groups found, setting default!")
-            propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
-            return 
-        end
-
-        for i=1, #playerGroups do
-            local jobName = playerGroups[i]
-            if MBT.CustomPropPosition[jobName] then
-                utils.mbtDebugger("Custom prop position for job "..jobName.. " found!")
-                overwriteValues(MBT.CustomPropPosition[jobName])
-            else    
-                utils.mbtDebugger("No job position customization found, setting default!")
-                propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
-            end
-        end
-
-        TriggerServerEvent("mbt_malisling:sendAnim", {
-            WeaponData = MBT.WeaponsInfo,
-            HolsterData = propInfoTable
-        })
-
-       
-    end
-
-    
-    RegisterNetEvent('ox:setGroup', function(group, grade) 
-        PlayerData.groups[group] = grade
-        sendAnimations()
-    end)
 end
 
 
