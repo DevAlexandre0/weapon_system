@@ -26,9 +26,14 @@ RegisterNetEvent('ox_inventory:currentWeapon', function(data)
     currentWeapon = data
 end)
 
+local Config = require 'shared.config'
+if not (Config.Recoil and Config.Recoil.Enabled or (Config.Crosshair and Config.Crosshair.Enabled) or (Config.HUD and Config.HUD.ManageReticle)) then
+    return
+end
+
 -- ===== Config shims (รองรับชื่อ key ใหม่/เก่า) =====
 local HUD  = Config.HUD or {}
-local RET  = Config.Reticle or {}
+local CRS  = Config.Crosshair or {}
 local RC   = Config.Recoil or {}
 local CTL  = Config.Controls or { MoveKeys = {32,33,34,35}, CrouchKey = 36 } -- W S A D / CTRL
 
@@ -39,13 +44,13 @@ local componentsToHide = HUD.DisableHudComponents or HUD.componentsToHide or leg
 local hideAmmo = (HUD.HideAmmo ~= nil and HUD.HideAmmo) or (HUD.displayAmmo == false) or (Config.displayAmmo == false)
 
 -- Reticle flags (case-insensitive fallback)
-local RET_manage  = (RET.ManageReticle ~= nil and RET.ManageReticle) or (RET.manage == true)
-local RET_onlyADS = (RET.ShowOnlyWhenAiming ~= nil and RET.ShowOnlyWhenAiming) or (RET.showOnlyWhenAiming ~= false) -- default true
-local RET_showFPS = (RET.ShowInFirstPerson ~= nil and RET.ShowInFirstPerson) or (RET.showInFirstPerson ~= false)    -- default true
-local RET_useComp = (RET.UseScopeComponentCheck == true) or (RET.showWhenHasScopeComponent == true)
-local RET_whitelist = RET.ScopedWeaponsWhitelist or RET.scopedWeapons or legacyScopedWeapons or {}
+local CRS_manage  = (CRS.ManageReticle ~= nil and CRS.ManageReticle) or (CRS.manage == true)
+local CRS_onlyADS = (CRS.ShowOnlyWhenAiming ~= nil and CRS.ShowOnlyWhenAiming) or (CRS.showOnlyWhenAiming ~= false) -- default true
+local CRS_showFPS = (CRS.ShowInFirstPerson ~= nil and CRS.ShowInFirstPerson) or (CRS.showInFirstPerson ~= false)    -- default true
+local CRS_useComp = (CRS.UseScopeComponentCheck == true) or (CRS.showWhenHasScopeComponent == true)
+local CRS_whitelist = CRS.ScopedWeaponsWhitelist or CRS.scopedWeapons or legacyScopedWeapons or {}
 
-local SCOPE_COMPONENTS = RET.ScopeComponents or RET.scopeComponents or {
+local SCOPE_COMPONENTS = CRS.ScopeComponents or CRS.scopeComponents or {
     `COMPONENT_AT_SCOPE_SMALL`,
     `COMPONENT_AT_SCOPE_SMALL_MK2`,
     `COMPONENT_AT_SCOPE_MEDIUM`,
@@ -70,7 +75,7 @@ local function isCrouching()
 end
 
 local function weaponHasScopeAttached(ped, weaponHash)
-    if not RET_useComp then return false end
+    if not CRS_useComp then return false end
     for _, comp in ipairs(SCOPE_COMPONENTS) do
         if HasPedGotWeaponComponent(ped, weaponHash, comp) then
             return true
@@ -80,10 +85,10 @@ local function weaponHasScopeAttached(ped, weaponHash)
 end
 
 local function shouldShowReticle(ped, weaponHash, weaponName)
-    if not RET_manage then return false end
-    if RET_onlyADS and not IsPlayerFreeAiming(PlayerId()) then return false end
-    if GetFollowPedCamViewMode() == 4 and not RET_showFPS then return false end  -- FPS gate
-    if RET_whitelist and RET_whitelist[weaponName] then return true end
+    if not CRS_manage then return false end
+    if CRS_onlyADS and not IsPlayerFreeAiming(PlayerId()) then return false end
+    if GetFollowPedCamViewMode() == 4 and not CRS_showFPS then return false end  -- FPS gate
+    if CRS_whitelist and CRS_whitelist[weaponName] then return true end
     if weaponHasScopeAttached(ped, weaponHash) then return true end
     return false
 end
@@ -107,11 +112,11 @@ CreateThread(function()
 
         -- --- Reticle priority: ForceHide > ForceShow > Auto ---
         local ped = PlayerPedId()
-        if Config.Reticle and Config.Reticle.ForceHide then
+        if Config.Crosshair and Config.Crosshair.ForceHide then
             HideHudComponentThisFrame(14)
-        elseif Config.Reticle and Config.Reticle.ForceShow then
+        elseif Config.Crosshair and Config.Crosshair.ForceShow then
             ShowHudComponentThisFrame(14)
-        elseif RET_manage then
+        elseif CRS_manage then
             if IsPedArmed(ped, 6) then
                 local whash = GetSelectedPedWeapon(ped)
                 local wname = (currentWeapon and currentWeapon.name) or "Default"
@@ -147,7 +152,7 @@ local function getRecoilNumbers(ped, weaponName, weaponHash)
     local moving  = isMoving()
     local crouch  = isCrouching()
     local inVeh   = IsPedInAnyVehicle(ped, false)
-    local scoped  = RET_whitelist[weaponName] or weaponHasScopeAttached(ped, weaponHash)
+    local scoped  = CRS_whitelist[weaponName] or weaponHasScopeAttached(ped, weaponHash)
 
     local m = (aiming and ADS or Hip)
     if crouch then m = m * Crou end

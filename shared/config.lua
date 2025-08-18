@@ -1,12 +1,17 @@
--- ===== MBT (ของเดิม — คงไว้) =========================================
-MBT = {}
-MBT.Debug = false
-MBT.DropWeaponOnDeath = true
-MBT.EnableSling = true
-MBT.EnableFlashlight = true
-MBT.Relog = false -- Put this to true if you have a esx_multicharacter and relog enabled!
+-- ===== Shared configuration with feature flags =======================
+local Config = {}
+Config.Debug = false
+Config.DropWeaponOnDeath = true
+Config.EnableSling = true
+Config.EnableFlashlight = true
+Config.Relog = false -- Put this to true if you have a esx_multicharacter and relog enabled!
 
-MBT.Jamming = {
+-- Durability / wear system
+Config.Durability = {
+    Enabled = true
+}
+
+Config.Jamming = {
     ["Enabled"] = true,
     ["Cooldown"] = 5,
     ["Animation"] = { ["Dict"] = "anim@weapons@first_person@aim_rng@generic@pistol@singleshot@str", ["Anim"] = "reload_aim" },
@@ -15,7 +20,7 @@ MBT.Jamming = {
     }
 }
 
-MBT.Throw = {
+Config.Throw = {
     ["Enabled"] = true,
     ["Animation"] = { ["Dict"] = "melee@unarmed@streamed_variations", ["Anim"] = "plyr_takedown_front_slap" },
     ["Groups"] = {
@@ -33,62 +38,62 @@ MBT.Throw = {
     ["Command"] = "throwWeapon"
 }
 
-MBT.Bones = { ["Back"] = 24816, ["LHand"] = 36029 }
+Config.Bones = { ["Back"] = 24816, ["LHand"] = 36029 }
 
-MBT.HolsterControls = {
+Config.HolsterControls = {
     ["Confirm"] = { ["Label"] = "Confirm Holster", ["Input"] = "MOUSE_BUTTON", ["Key"] = "MOUSE_RIGHT" },
     ["Cancel"]  = { ["Label"] = "Cancel Holster",  ["Input"] = "keyboard",     ["Key"] = "BACK" }
 }
 
-MBT.Notification = function (data)
+Config.Notification = function (data)
     lib.notify(data)
 end
 
-MBT.Labels = {
+Config.Labels = {
     ["has_jammed"]   = { ["title"] = "Jammed!",   ["description"] = "Your weapon has jammed! Check its state!", ["type"] = "error",   ["icon"] = "fa-solid fa-triangle-exclamation" },
     ["has_unjammed"] = { ["title"] = "Unjammed!", ["description"] = "You have unjammed your weapon!",          ["type"] = "success", ["icon"] = "fa-solid fa-person-rifle" },
     ["no_allowed_throw"] = { ["title"] = "Ops!", ["description"] = "You are not able to throw this weapon!", ["type"] = "error", ["icon"] = "fa-solid fa-hand-fist" },
     ["Holster_Help"] = "[RMOUSE] - Unholster [BACKSPACE] - Cancel",
 }
 
-MBT.PropInfo = {
+Config.PropInfo = {
     ["side"] = {
-        ["Bone"] = MBT.Bones["Back"],
+        ["Bone"] = Config.Bones["Back"],
         ["Pos"] = { ["male"] = { x=-0.15, y=0.0, z=-0.23 }, ["female"] = { x=-0.15, y=0.0, z=-0.23 } },
         ["Rot"] = { ["male"] = { x=90.0,  y=20.0, z=180.0 }, ["female"] = { x=90.0,  y=20.0, z=180.0 } },
         ["isPed"] = false, ["RotOrder"] = 2, ["FixedRot"] = true,
         ["HolsterAnim"] = { ["dict"] = "reaction@intimidation@cop@unarmed", ["animIn"] = "intro", ["animOut"] = "outro", ["sleep"] = 400, ["sleepOut"] = 450 }
     },
     ["back"] = {
-        ["Bone"] = MBT.Bones["Back"],
+        ["Bone"] = Config.Bones["Back"],
         ["Pos"] = { ["male"] = { x=0.4, y=-0.18, z=0.1 }, ["female"] = { x=0.4, y=-0.18, z=0.1 } },
         ["Rot"] = { ["male"] = { x=0.0, y=155.0, z=0.0 }, ["female"] = { x=0.0, y=155.0, z=0.0 } },
         ["isPed"] = false, ["RotOrder"] = 2, ["FixedRot"] = true,
         ["HolsterAnim"] = { ["dict"] = "reaction@intimidation@1h", ["animIn"] = "intro", ["animOut"] = "outro", ["sleep"] = 1200, ["sleepOut"] = 1200 }
     },
     ["back2"] = {
-        ["Bone"] = MBT.Bones["Back"],
+        ["Bone"] = Config.Bones["Back"],
         ["Pos"] = { ["male"] = { x=0.4, y=-0.18, z=0.1 }, ["female"] = { x=0.4, y=-0.18, z=0.1 } },
         ["Rot"] = { ["male"] = { x=0.4, y=-0.18, z=0.1 }, ["female"] = { x=0.4, y=-0.18, z=0.1 } },
         ["isPed"] = false, ["RotOrder"] = 2, ["FixedRot"] = true,
         ["HolsterAnim"] = { ["dict"] = "reaction@intimidation@1h", ["animIn"] = "intro", ["animOut"] = "outro", ["sleep"] = 1200, ["sleepOut"] = 1200 }
     },
     ["melee"] = {
-        ["Bone"] = MBT.Bones["Back"],
+        ["Bone"] = Config.Bones["Back"],
         ["Pos"] = { ["male"] = { x=-0.4, y=-0.1, z=0.22 }, ["female"] = { x=-0.4, y=-0.1, z=0.22 } },
         ["Rot"] = { ["male"] = { x=90.0, y=-10.0, z=120.0 }, ["female"] = { x=90.0, y=-10.0, z=120.0 } },
         ["isPed"] = false, ["RotOrder"] = 2, ["FixedRot"] = true,
         ["HolsterAnim"] = { ["dict"] = "combat@combat_reactions@pistol_1h_gang", ["animIn"] = "0", ["animOut"] = "0", ["sleep"] = 500, ["sleepOut"] = 500 }
     },
     ["melee2"] = {
-        ["Bone"] = MBT.Bones["Back"],
+        ["Bone"] = Config.Bones["Back"],
         ["Pos"] = { ["male"] = { x=-0.05, y=0.1, z=0.22 }, ["female"] = { x=-0.05, y=0.1, z=0.22 } },
         ["Rot"] = { ["male"] = { x=-90.0, y=-10.0, z=120.0 }, ["female"] = { x=-90.0, y=-10.0, z=120.0 } },
         ["isPed"] = false, ["RotOrder"] = 2, ["FixedRot"] = true,
         ["HolsterAnim"] = { ["dict"] = "combat@combat_reactions@pistol_1h_hillbilly", ["animIn"] = "0", ["animOut"] = "0", ["sleep"] = 500, ["sleepOut"] = 500 }
     },
     ["melee3"] = {
-        ["Bone"] = MBT.Bones["Back"],
+        ["Bone"] = Config.Bones["Back"],
         ["Pos"] = { ["male"] = { x=-0.2, y=-0.18, z=0.18 }, ["female"] = { x=-0.2, y=-0.18, z=0.18 } },
         ["Rot"] = { ["male"] = { x=0.0, y=115.0, z=0.0 }, ["female"] = { x=0.0, y=115.0, z=0.0 } },
         ["isPed"] = false, ["RotOrder"] = 2, ["FixedRot"] = true,
@@ -96,19 +101,18 @@ MBT.PropInfo = {
     }
 }
 
-MBT.CustomPropPosition = {
+Config.CustomPropPosition = {
     -- ตัวอย่าง preset (เว้นว่างไว้เหมือนเดิม)
 }
 
--- ===== CONFIG (ของเดิมบางส่วน + เพิ่มบล็อกใหม่สำหรับ Recoil/Reticle/HUD) =====
-Config = {}
+-- ===== CONFIG (ของเดิมบางส่วน + เพิ่มบล็อกใหม่สำหรับ Recoil/Crosshair/HUD) =====
 
 -- Fire-mode / UI ตัวเลือกยิง (ของเดิม)
 Config.SelectorKey = 29
 Config.SelectorImages = true
 Config.StartSafe = true
 
--- >>> ใหม่: HUD / Reticle ย้ายมาคุมตรงนี้ <<<
+-- >>> ใหม่: HUD / Crosshair ย้ายมาคุมตรงนี้ <<<
 Config.HUD = {
     ManageReticle = true,       -- ให้สคริปต์นี้คุมการแสดง/ซ่อนเป้า
     HideAmmo      = true,       -- ซ่อนตัวเลขกระสุน/weapon icon
@@ -116,9 +120,9 @@ Config.HUD = {
     DisableHudComponents = {1, 3, 4, 7, 9, 13, 19, 21, 22}
 }
 
-Config.Reticle = {
+Config.Crosshair = {
     Enabled = true,              -- เปิด/ปิดระบบจัดการเป้าโดยรวม
-    ForceHide = false,            -- << เปิดอันนี้ = ซ่อนเป้าทุกกรณี >>
+    ForceHide = false,           -- << เปิดอันนี้ = ซ่อนเป้าทุกกรณี >>
     ForceShow = false,           -- ถ้าจะบังคับโชว์ทุกกรณีให้สลับเป็น true (อย่าเปิดคู่กัน)
     ShowOnlyWhenAiming = false,
     ShowInFirstPerson = false,
@@ -154,6 +158,7 @@ Config.Controls = {
 
 -- >>> ใหม่: Recoil tuning ทั้งหมดอยู่ที่นี่ <<<
 Config.Recoil = {
+    Enabled = true,
     FirstPerson = { Apply = false },     -- ปล่อย native จัดการใน FPS (true = บังคับเอง)
     VerticalStepMaxPerFrame = 0.25,      -- เพดานยกกล้องต่อเฟรม (ให้ลื่น)
 
@@ -224,7 +229,7 @@ Config.Weapons.Full = {
     "WEAPON_SPECIALCARBINE_MK2","WEAPON_BULLPUPRIFLE_MK2","WEAPON_PUMPSHOTGUN_MK2"
 }
 
--- (เดิม) อาวุธที่ “ให้เห็นเรติเคิล” — ตอนนี้ถูกแทนด้วย Config.Reticle แล้ว แต่คงไว้
+-- (เดิม) อาวุธที่ "ให้เห็นเรติเคิล" — ตอนนี้ถูกแทนด้วย Config.Crosshair แล้ว แต่คงไว้
 Config.Weapons.Reticle = {
     "WEAPON_SNIPERRIFLE","WEAPON_HEAVYSNIPER","WEAPON_HEAVYSNIPER_MK2",
     "WEAPON_MARKSMANRIFLE","WEAPON_MARKSMANRIFLE_MK2","WEAPON_STUNGUN"
@@ -239,5 +244,7 @@ Config.BloodEffects = {
 	"BigHitByVehicle",
 	"Car_Crash_Heavy",
 	"HitByVehicle",
-	"BigRunOverByVehicle"
+	"BigRunOverByVehicle",
 }
+
+return Config

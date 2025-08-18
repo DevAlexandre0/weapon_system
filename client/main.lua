@@ -23,6 +23,7 @@ local SetEntityCompletelyDisableCollision = SetEntityCompletelyDisableCollision
 local SetFlashLightKeepOnWhileMoving = SetFlashLightKeepOnWhileMoving
 
 local utils = require 'utils'
+local Config = require 'shared.config'
 local state = require 'client.state'
 
 local isESX = GetResourceState("es_extended") ~= "missing"
@@ -32,7 +33,8 @@ local ox_inventory = exports["ox_inventory"]
 local FrameworkObj, weaponNames, weaponObjectiveSpawned = {}, {}, {}
 local PlayerData = {}
 local isReady = false
-local propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
+local propInfoTable = utils.tableDeepCopy(Config.PropInfo)
+local WeaponsInfo = state.weaponsInfo
 local playerSex
 local flashlightState
 local isfirstSpawn = true
@@ -42,8 +44,8 @@ local playersToTrack = state.playersToTrack
 
 RegisterCommand('confirmHolster', function() end, false)
 RegisterCommand('cancelHolster', function() end, false)
-RegisterKeyMapping('confirmHolster', MBT.HolsterControls["Confirm"]["Label"], MBT.HolsterControls["Confirm"]["Input"], MBT.HolsterControls["Confirm"]["Key"])
-RegisterKeyMapping('cancelHolster', MBT.HolsterControls["Cancel"]["Label"], MBT.HolsterControls["Cancel"]["Input"], MBT.HolsterControls["Cancel"]["Key"])
+RegisterKeyMapping('confirmHolster', Config.HolsterControls["Confirm"]["Label"], Config.HolsterControls["Confirm"]["Input"], Config.HolsterControls["Confirm"]["Key"])
+RegisterKeyMapping('cancelHolster', Config.HolsterControls["Cancel"]["Label"], Config.HolsterControls["Cancel"]["Input"], Config.HolsterControls["Cancel"]["Key"])
 
 --- Delete all attached weapons and sync with server 
 local function deleteAllWeapons()
@@ -86,10 +88,10 @@ local function applyAttachments(data)
             for i = 1, #components do
                 local componentName = components[i]
 
-                if not MBT.EnableFlashlight and utils.isComponentAFlashlight(componentName) then goto continue; end
+                if not Config.EnableFlashlight and utils.isComponentAFlashlight(componentName) then goto continue; end
 
                 utils.mbtDebugger("applyAttachments ~ Applying component: ", componentName)
-                local compsTable = MBT.WeaponsInfo.Components[componentName]["client"]["component"]
+                local compsTable = WeaponsInfo.Components[componentName]["client"]["component"]
 
                 for v=1, #compsTable do
                     local component = compsTable[v]
@@ -141,28 +143,29 @@ local function overwriteValues(newTable)
 end
 
 local function getAttachInfo(data)
-    if MBT.CustomPropPosition[data.Job] and MBT.CustomPropPosition[data.Job][data.Type] then
-        return MBT.CustomPropPosition[data.Job][data.Type]
+    if Config.CustomPropPosition[data.Job] and Config.CustomPropPosition[data.Job][data.Type] then
+        return Config.CustomPropPosition[data.Job][data.Type]
     end
-    return MBT.PropInfo[data.Type]
+    return Config.PropInfo[data.Type]
 end
 
 local function sendAnimations(jobName)
-    if MBT.CustomPropPosition[jobName] then
+    if Config.CustomPropPosition[jobName] then
         utils.mbtDebugger("Custom prop position for job "..jobName.. " found!")
-        overwriteValues(MBT.CustomPropPosition[jobName])
+        overwriteValues(Config.CustomPropPosition[jobName])
     else    
-        propInfoTable = utils.tableDeepCopy(MBT.PropInfo)
+        propInfoTable = utils.tableDeepCopy(Config.PropInfo)
     end
 
     TriggerServerEvent("mbt_malisling:sendAnim", {
-        WeaponData = MBT.WeaponsInfo,
+        WeaponData = WeaponsInfo,
         HolsterData = propInfoTable
     })
 end
 
 local function Init()
-    MBT.WeaponsInfo = lib.callback.await('mbt_malisling:getWeapoConf', false)
+    WeaponsInfo = lib.callback.await('mbt_malisling:getWeapoConf', false)
+    state.weaponsInfo = WeaponsInfo
     utils.mbtDebugger("Init ~ has been fired!!!")
 
     local tempPlayers = GetActivePlayers()
@@ -194,13 +197,13 @@ local function Init()
 
         if data then
 
-            local weaponType = MBT.WeaponsInfo["Weapons"][data.name]?.type
+            local weaponType = WeaponsInfo["Weapons"][data.name]?.type
 
             local weaponName = data.name
 
             if weaponType == 'side' and GetConvar('malisling:enable_sling', 'false') == 'true' then
                 local waitingForHolster = nil
-                lib.showTextUI(MBT.Labels["Holster_Help"], {icon = 'hand'})
+                lib.showTextUI(Config.Labels["Holster_Help"], {icon = 'hand'})
                 lib.requestAnimDict("reaction@intimidation@cop@unarmed")
                 while not IsEntityPlayingAnim(cache.ped, "reaction@intimidation@cop@unarmed", "intro", 3) do
                     TaskPlayAnim(cache.ped, "reaction@intimidation@cop@unarmed", "intro", 8.0, 2.0, -1, 50, 2.0, 0, 0, 0 )
@@ -246,7 +249,7 @@ local function Init()
             if utils.isTableEmpty(equippedWeapon) then return end
             
             local weaponName = equippedWeapon["name"]
-            if equippedWeapon["components"] and utils.containsValue(equippedWeapon["components"], "at_flashlight") or utils.weaponHasFlashlight(cache.ped, weaponName, MBT.WeaponsInfo.Components["at_flashlight"]["client"]["component"]) then
+            if equippedWeapon["components"] and utils.containsValue(equippedWeapon["components"], "at_flashlight") or utils.weaponHasFlashlight(cache.ped, weaponName, WeaponsInfo.Components["at_flashlight"]["client"]["component"]) then
                 LocalPlayer.state:set('WeaponFlashlightState', {
                     [equippedWeapon.slot] = {Serial = equippedWeapon.serial, FlashlightState = flashlightState}
                 }, true)
@@ -262,7 +265,7 @@ local function Init()
             for _, v in pairs(invWeap) do
                 if v.slot == equippedWeapon["slot"] and not equippedWeapon["dropped"] then
                     local weaponData = v
-                    weaponData.type = MBT.WeaponsInfo["Weapons"][v.name]?.type
+                    weaponData.type = WeaponsInfo["Weapons"][v.name]?.type
                     playerWeapons[weaponData.type] = weaponData
                 end
             end
@@ -276,7 +279,7 @@ local function Init()
         utils.mbtDebugger("ox_inventory:itemCount ~ Item "..itemName.." removed, remaining "..left)
 
         if utils.isWeapon(itemName) then
-            local weaponType = MBT.WeaponsInfo["Weapons"][itemName]?.type
+            local weaponType = WeaponsInfo["Weapons"][itemName]?.type
 
             if left < 1 and type(weaponType) == "string" then
                 if type(playersToTrack[cache.serverId][weaponType]) == "number" then
@@ -296,7 +299,7 @@ local function Init()
 
                             if v.count and v.count > 0 then
     
-                                if MBT.WeaponsInfo["Weapons"][v.name]?.type == weaponType then
+                                if WeaponsInfo["Weapons"][v.name]?.type == weaponType then
     
                                     if not pWeapons[weaponType] then
                                         local weaponData = v
@@ -332,8 +335,8 @@ local function Init()
         if utils.getTableLength(data) == 1 then
             for _,v in pairs(data) do
                 if type(v) == "table" then
-                    if utils.isWeapon(v.name) and playerWeapon ~= joaat(v.name) and MBT.WeaponsInfo["Weapons"][v.name]["type"] then
-                        local weaponType = MBT.WeaponsInfo["Weapons"][v.name]?.type
+                    if utils.isWeapon(v.name) and playerWeapon ~= joaat(v.name) and WeaponsInfo["Weapons"][v.name]["type"] then
+                        local weaponType = WeaponsInfo["Weapons"][v.name]?.type
 
 
                         if not playersToTrack[cache.serverId][weaponType] then
@@ -373,7 +376,7 @@ if isESX then
     AddEventHandler('esx:loadingScreenOff', function()
         utils.mbtDebugger("esx:loadingScreenOff ~ FIRED")
         while not FrameworkObj.IsPlayerLoaded() do Wait(100) end
-        if isMultichar and MBT.Relog and not isfirstSpawn then return end
+        if isMultichar and Config.Relog and not isfirstSpawn then return end
         isfirstSpawn = false
         Init()
     end)
@@ -403,7 +406,7 @@ if isESX then
         utils.mbtDebugger("esx:removeInventoryItem ~ Item "..itemName.." removed, remaining "..left)
         
         if utils.isWeapon(itemName) then
-            local weaponType = MBT.WeaponsInfo["Weapons"][itemName]?.type
+            local weaponType = WeaponsInfo["Weapons"][itemName]?.type
             if left < 1 and type(weaponType) == "string" then
                 if type(playersToTrack[cache.serverId][weaponType]) == "number" then
                     TriggerServerEvent("mbt_malisling:syncDeletion", weaponType)
@@ -414,10 +417,10 @@ if isESX then
 
                 for _, v in pairs(FrameworkObj.PlayerData.inventory) do
                     if utils.isWeapon(v.name) then
-                        if MBT.WeaponsInfo["Weapons"][v.name]?.type == weaponType then
+                        if WeaponsInfo["Weapons"][v.name]?.type == weaponType then
                             if not pWeapons[weaponType] then
                                 local weaponData = v
-                                weaponData.type = MBT.WeaponsInfo["Weapons"][v.name]?.type or "back"
+                                weaponData.type = WeaponsInfo["Weapons"][v.name]?.type or "back"
                                 pWeapons[weaponType] = weaponData
                                 break
                             end
@@ -506,8 +509,8 @@ AddEventHandler("mbt_malisling:checkWeaponProps", function(t)
     utils.mbtDebugger("checkWeaponProps ~ Starting iterating inventory weapons!")
     
     for _, weaponData in pairs(t) do
-        if utils.isWeapon(weaponData.name) and MBT.WeaponsInfo["Weapons"][weaponData.name]["type"] then
-            local weaponType = MBT.WeaponsInfo["Weapons"][weaponData.name]?.type
+        if utils.isWeapon(weaponData.name) and WeaponsInfo["Weapons"][weaponData.name]["type"] then
+            local weaponType = WeaponsInfo["Weapons"][weaponData.name]?.type
             utils.mbtDebugger("checkWeaponProps ~ weaponType ", weaponData.name, weaponType	)
 
             if not playerWeapons[weaponType] then

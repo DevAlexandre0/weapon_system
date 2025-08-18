@@ -1,6 +1,7 @@
 local state = {
     equippedWeapon = {},
-    playersToTrack = {}
+    playersToTrack = {},
+    weaponsInfo = {}
 }
 
 return state

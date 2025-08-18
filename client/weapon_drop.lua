@@ -1,11 +1,12 @@
 local CurrentWeapon = {}
 
+local Config = require 'shared.config'
 local utils = require 'utils'
 local state = require 'client.state'
 local equippedWeapon = state.equippedWeapon
 
 AddEventHandler('ox_inventory:currentWeapon', function(currentWeapon) CurrentWeapon = currentWeapon end)
-if MBT.DropWeaponOnDeath then
+if Config.DropWeaponOnDeath then
 
     AddEventHandler('gameEventTriggered', function(event, data)
         if event == 'CEventNetworkEntityDamage' then

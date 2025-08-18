@@ -1,9 +1,10 @@
-if not MBT.Jamming["Enabled"] then return end
+local Config = require 'shared.config'
+if not Config.Jamming["Enabled"] then return end
 
 local utils = require 'utils'
 local currentWeapon
 
-local jamAnim = MBT.Jamming["Animation"]
+local jamAnim = Config.Jamming["Animation"]
 local isJammed = false
 LocalPlayer.state:set('JammedState', false, false)
 
@@ -50,7 +51,7 @@ AddStateBagChangeHandler('JammedState', nil, function(bagName, key, value)
     utils.mbtDebugger("isJammed has been set to ", isJammed)
 
     if isJammed then
-        MBT.Notification(MBT.Labels["has_jammed"])
+        Config.Notification(Config.Labels["has_jammed"])
         Citizen.CreateThread(function()
             disableFiring()
         end)
@@ -61,7 +62,7 @@ AddStateBagChangeHandler('JammedState', nil, function(bagName, key, value)
             skillCheck()
         end)
     else
-        MBT.Notification(MBT.Labels["has_unjammed"])
+        Config.Notification(Config.Labels["has_unjammed"])
     end
 end)
 
