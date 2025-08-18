@@ -1,11 +1,12 @@
-if not MBT.Throw["Enabled"] then return end
+local Config = require 'shared.config'
+if not Config.Throw["Enabled"] then return end
 
 local utils = require 'utils'
 local state = require 'client.state'
 local equippedWeapon = state.equippedWeapon
 
 local currentWeapon
-local throwAnim = MBT.Throw["Animation"]
+local throwAnim = Config.Throw["Animation"]
 local isThrowing = false
 
 AddEventHandler('ox_inventory:currentWeapon', function(data)
@@ -16,8 +17,8 @@ AddEventHandler('ox_inventory:currentWeapon', function(data)
 end)
 
 local function isAllowedToThrow(weaponGroup)
-    utils.mbtDebugger("Is allowed to throw? ", MBT.Throw["Groups"][weaponGroup]["Allowed"])
-    return MBT.Throw["Groups"][weaponGroup]["Allowed"]
+    utils.mbtDebugger("Is allowed to throw? ", Config.Throw["Groups"][weaponGroup]["Allowed"])
+    return Config.Throw["Groups"][weaponGroup]["Allowed"]
 end
 
 local function throwWeapon(data)
@@ -38,7 +39,7 @@ local function throwWeapon(data)
     Citizen.Wait(500)
     DetachEntity(weaponObj, true, true)
     local forwardVector = GetEntityForwardVector(cache.ped)
-    local multipliers = MBT.Throw["Groups"][data.Group]["Multipliers"] or { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 }
+    local multipliers = Config.Throw["Groups"][data.Group]["Multipliers"] or { ["X"] = 20.0, ["Y"] = 20.0, ["Z"] = 10.0 }
     ApplyForceToEntity(weaponObj, 1, forwardVector.x * multipliers["X"], forwardVector.y * multipliers["Y"], forwardVector.z + multipliers["Z"], 0, 0, 0, 0, false, true, true, false, true)
     Wait(250)
     while IsEntityInAir(weaponObj) do Wait(250); end
@@ -60,9 +61,9 @@ local function attemptThrowWeapon()
     local hasWeapon, weaponHash = GetCurrentPedWeapon(cache.ped)
     local weaponGroup = GetWeapontypeGroup(weaponHash)
     if not hasWeapon then return end
-    if not isAllowedToThrow(weaponGroup) then MBT.Notification(MBT.Labels["no_allowed_throw"]); return; end
+    if not isAllowedToThrow(weaponGroup) then Config.Notification(Config.Labels["no_allowed_throw"]); return; end
     throwWeapon({Hash = weaponHash, Group = weaponGroup})
 end
 
-RegisterCommand(MBT.Throw["Command"], attemptThrowWeapon)
-RegisterKeyMapping(MBT.Throw["Command"], "[MBT] Throw your current weapon", "keyboard", MBT.Throw["Key"])
+RegisterCommand(Config.Throw["Command"], attemptThrowWeapon)
+RegisterKeyMapping(Config.Throw["Command"], "[MBT] Throw your current weapon", "keyboard", Config.Throw["Key"])

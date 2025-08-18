@@ -1,4 +1,5 @@
 local utils = require 'utils'
+local Config = require 'shared.config'
 local state = require 'server.state'
 local scopesModule = require 'server.scopes'
 local isESX = GetResourceState("es_extended") ~= "missing"
@@ -8,6 +9,7 @@ local ox_inventory = exports["ox_inventory"]
 local playersToTrack = state.playersToTrack
 local weaponDurability = state.weaponDurability
 local lastJam = state.lastJam
+local WeaponsInfo = state.weaponsInfo
 local addPlayerToPlayerScope = scopesModule.addPlayerToPlayerScope
 local removePlayerFromScopes = scopesModule.removePlayerFromScopes
 local TriggerScopeEvent = scopesModule.TriggerScopeEvent
@@ -37,9 +39,9 @@ end)
 
 lib.callback.register('mbt_malisling:getWeapoConf', function(source)
     utils.mbtDebugger("getWeapoConf ~  Source ", source, " requested callback!")
-    -- utils.mbtDebugger(MBT.WeaponsInfo)
+    -- utils.mbtDebugger(WeaponsInfo)
     while not isReady do Wait(250) end
-    return MBT.WeaponsInfo
+    return WeaponsInfo
 end)
 
 local function loadWeaponsInfo()
@@ -47,20 +49,21 @@ local function loadWeaponsInfo()
 
     local weaponsFile = LoadResourceFile("ox_inventory", 'data/weapons.lua')
     local weaponsChunk = assert(load(weaponsFile, ('@@ox_inventory/data/weapons.lua')))
-    local weaponsInfo = weaponsChunk()
+    local info = weaponsChunk()
 
     for k, v in pairs(utils.data('weapons')) do
-        if not weaponsInfo["Weapons"][k] then
+        if not info["Weapons"][k] then
             warn("Weapon not found in weapons data file: " .. k)
         else
-            weaponsInfo["Weapons"][k]["type"] = v.type
+            info["Weapons"][k]["type"] = v.type
         end
     end
 
-    MBT.WeaponsInfo = weaponsInfo
-    local b = MBT.EnableSling and true or false
+    WeaponsInfo = info
+    state.weaponsInfo = WeaponsInfo
+    local b = Config.EnableSling and true or false
     SetConvarReplicated("malisling:enable_sling", tostring(b))
-    TriggerClientEvent("mbt_malisling:sendWeaponsData", -1, MBT.WeaponsInfo)
+    TriggerClientEvent("mbt_malisling:sendWeaponsData", -1, WeaponsInfo)
     isReady = true
 end
 
@@ -141,7 +144,7 @@ end)
 RegisterNetEvent('mbt_malisling:syncSling', function(data)
     if type(data) ~= 'table' or type(data.playerWeapons) ~= 'table' then return end
 
-    local maxTypes = utils.getTableLength(MBT.PropInfo)
+    local maxTypes = utils.getTableLength(Config.PropInfo)
     if utils.getTableLength(data.playerWeapons) > maxTypes then
         warn(('syncSling: too many weapon types from %s'):format(source))
         return
@@ -151,8 +154,8 @@ RegisterNetEvent('mbt_malisling:syncSling', function(data)
     playersToTrack[_source] = playersToTrack[_source] or {}
 
     for wType, weaponData in pairs(data.playerWeapons) do
-        local propCfg = MBT.PropInfo[wType]
-        local weaponInfo = type(weaponData) == 'table' and weaponData.name and MBT.WeaponsInfo and MBT.WeaponsInfo["Weapons"][weaponData.name]
+        local propCfg = Config.PropInfo[wType]
+        local weaponInfo = type(weaponData) == 'table' and weaponData.name and WeaponsInfo and WeaponsInfo["Weapons"][weaponData.name]
 
         if propCfg and weaponInfo and weaponInfo.type == wType then
             playersToTrack[_source][wType] = weaponData
@@ -194,6 +197,7 @@ AddEventHandler("mbt_malisling:syncDeletion", function(weaponType)
 end)
 
 RegisterNetEvent('mbt_malisling:shotFired', function(slot)
+    if not Config.Durability.Enabled then return end
     local src = source
     if not slot then return end
 
@@ -209,8 +213,9 @@ RegisterNetEvent('mbt_malisling:shotFired', function(slot)
     local serial = weaponData.metadata.serial or slot
     weaponDurability[src][serial] = durability
 
+    if not Config.Jamming.Enabled then return end
     local now = GetGameTimer()
-    local cooldown = (MBT.Jamming["Cooldown"] or 0) * 1000
+    local cooldown = (Config.Jamming["Cooldown"] or 0) * 1000
     lastJam[src] = lastJam[src] or 0
     if now - lastJam[src] >= cooldown and utils.getJammingChance(durability) then
         lastJam[src] = now

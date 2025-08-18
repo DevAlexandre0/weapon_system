@@ -1,3 +1,5 @@
+local Config = require 'shared.config'
+
 local FireMode = {}
 FireMode.Weapons = {}
 FireMode.LastWeapon = false

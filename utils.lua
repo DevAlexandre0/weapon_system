@@ -1,9 +1,10 @@
+local Config = require 'shared.config'
 local utils = {}
 
 ---@param t table
 ---@param indent boolean
 function utils.dumpTable(t, indent)
-    if MBT.Debug then
+    if Config.Debug then
         indent = indent or 0
         for k,v in pairs(t) do
             local formatting = string.rep("    ", indent) .. k .. ": "
@@ -18,7 +19,7 @@ function utils.dumpTable(t, indent)
 end
 
 function utils.mbtDebugger(...)
-    if MBT.Debug then
+    if Config.Debug then
         local args = {...}
         local printResult = "^3[mbt_malisling] | "
         for i, arg in ipairs(args) do
@@ -251,9 +252,9 @@ end
 ---@param d number
 local function getChance(d)
     local prevKey = nil
-    for key in orderedPairs(MBT.Jamming["Chance"], function (a, b)  return a > b; end) do
+    for key in orderedPairs(Config.Jamming["Chance"], function (a, b)  return a > b; end) do
         if prevKey and d > key and d < prevKey then
-            return MBT.Jamming["Chance"][prevKey]
+            return Config.Jamming["Chance"][prevKey]
         end
         prevKey = key
     end
